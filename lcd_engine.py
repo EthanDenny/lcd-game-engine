@@ -3,6 +3,7 @@ from RPLCD.i2c import CharLCD
 from core import Core, JoystickInputs
 from gpiozero import TonalBuzzer
 import time
+from gpiozero.tones import Tone
 from gpiozero import Button
 from gpiozero import Device
 from gpiozero.pins.pigpio import PiGPIOFactory
@@ -74,11 +75,9 @@ class Engine(Core):
             if(effect_name): 
                 effect_notes: list[str] = Engine.state['sound_effects'][effect_name]
                 for i in range(len(effect_notes)):
-                    # buzzer.play(Tone.from_frequency(effect_notes[i]))  
-                    print("JUMP!")
+                    buzzer.play(Tone.from_frequency(effect_notes[i]))  
             else: 
-                # buzzer.play(Tone.from_frequency(Engine.state['music'][Engine.state['current_note_index']]))
-                print(Engine.state['music'][Engine.state['current_note_index']])
+                buzzer.play(Tone.from_frequency(Engine.state['music'][Engine.state['current_note_index']]))
                 Engine.state['current_note_index'] = (Engine.state['current_note_index'] + 1 ) % Engine.state['music_length']
     class GameObject:
         x = 0
