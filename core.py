@@ -43,6 +43,7 @@ class Core:
         self.player = self.player_class()
         self.state = self.initial_state.copy()
         self.objects = []
+        self.set_sound_config(self.state["music"], self.state["sound_effects"])
 
     def set_state(self, state):
         self.initial_state = state.copy()

@@ -1,5 +1,5 @@
 from core import GameObject
-from py_engine import Engine
+from lcd_engine import Engine
 
 engine = Engine()
 
@@ -107,8 +107,14 @@ def loop():
 engine.set_state(
     {
         "sword_dir": "right",
+        "music": "default",
+        "sound_effects": ["dinojump"],
+        "music_length": 0,
+        "current_note_index": 0,
+        "current_sound_effect": "",
     }
 )
 reset_enemies()
 engine.set_player(Player)
+engine.set_sound_config("default", ["dinojump"])
 engine.run(loop)

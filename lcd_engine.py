@@ -2,9 +2,8 @@ from PIL import Image
 from RPLCD.i2c import CharLCD
 from core import Core, JoystickInputs
 from gpiozero import TonalBuzzer
-from gpiozero.tones import Tone
-from gpiozero.exc import BadPinFactory
 import time
+from gpiozero.tones import Tone
 from gpiozero import Button
 from gpiozero import Device
 from gpiozero.pins.pigpio import PiGPIOFactory
@@ -14,6 +13,7 @@ Device.pin_factory = PiGPIOFactory()
 
 
 lcd = CharLCD(i2c_expander="PCF8574", address=0x27, port=1, cols=16, rows=2, dotsize=8)
+buzzer: TonalBuzzer = TonalBuzzer(26)
 a_button = Button(6)
 b_button = Button(5)
 bus = smbus.SMBus(1)
@@ -49,57 +49,77 @@ class Engine(Core):
 
         lcd.create_char(number, byte_map)
 
-    class Sound:
-        def __init__(self, music="default", soundEffects: list[str] = []):
-            try:
-                self.buzzer: TonalBuzzer = TonalBuzzer(26)
-            except BadPinFactory:
-                self.buzzer = None
-                print("buzzer setup failed")
-            self.currentNoteIndex = 0
-            self.soundEffects = {}
-
-            for effectName in soundEffects:
-                with open(f"assets/soundeffects/{effectName}.txt") as f:
-                    notes = f.read().strip().split()
-                    self.soundEffects[effectName] = {
-                        q: float(notes[q]) for q in range(len(notes))
-                    }
-                    f.close()
-
-            with open(f"assets/music/{music}.txt") as f:
+    def set_sound_config(self, music_name: str, effect_names=list[str]):
+        sound_effects: dict = {}
+        music: dict = {}
+        for effect_name in effect_names:
+            with open(f"assets/soundeffects/{effect_name}.txt") as f:
                 notes = f.read().strip().split()
-                self.soundtrackLength = len(notes)
-                self.musicNotes = {
-                    i: float(notes[i]) for i in range(self.soundtrackLength)
+                sound_effects[effect_name] = {
+                    q: float(notes[q]) for q in range(len(notes))
                 }
                 f.close()
 
-        def playSoundEffect(self, effectName: str):
-            if not self.buzzer:
-                return
+            with open(f"assets/music/{music_name}.txt") as f:
+                notes = f.read().strip().split()
+                music_length = len(notes)
+                music = {i: float(notes[i]) for i in range(music_length)}
+                f.close()
 
-            effectNotes: list[str] = self.soundEffects[effectName]
-            for i in range(len(effectNotes)):
-                # TODO: determine transition step value to reduce choppiness
-                self.buzzer.play(Tone.from_frequency(effectNotes[i]))
+            self.state["music"] = music
+            self.state["sound_effects"] = sound_effects
+            self.state["music_length"] = music_length
+            self.state["current_note_index"] = 0
+            self.state["current_sound_effect"] = ""
 
-        # play the current note of the soundtrack. cycle to beginning when finished.
-        def playNote(self, effectName=""):
-            if not self.buzzer:
-                return
-            elif effectName:
-                self.playSoundEffect(effectName)
-            else:
-                # TODO: determine transition step value to reduce choppiness
-                self.buzzer.play(
-                    Tone.from_frequency(self.musicNotes[self.currentNoteIndex])
+    # play the current note of the soundtrack. cycle to beginning when finished.
+    def play_sound(self, effect_name=""):
+        if effect_name:
+            effect_notes: list[str] = self.state["sound_effects"][effect_name]
+            for i in range(len(effect_notes)):
+                buzzer.play(Tone.from_frequency(effect_notes[i]))
+        else:
+            buzzer.play(
+                Tone.from_frequency(
+                    self.state["music"][self.state["current_note_index"]]
                 )
-                self.currentNoteIndex = (
-                    self.currentNoteIndex + 1
-                ) % self.soundtrackLength
+            )
+            self.state["current_note_index"] = (
+                self.state["current_note_index"] + 1
+            ) % self.state["music_length"]
 
-    def get_joystick(self):
+    class GameObject:
+        x = 0
+        y = 0
+
+        def __init__(self, x=0, y=0):
+            self.x = x
+            self.y = y
+
+        def render(self):
+            return [
+                [1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1],
+            ]
+
+    class JoystickInputs:
+        left = False
+        right = False
+        up = False
+        down = False
+
+        def __init__(self, left, right, up, down):
+            self.left = left
+            self.right = right
+            self.up = up
+            self.down = down
+
+    def get_joystick():
         x_val = read_channel(0)  # AIN0 (VRx)
         y_val = read_channel(1)  # AIN1 (VRy)
         x = x_val / 255
@@ -141,27 +161,26 @@ class Engine(Core):
 
     def run(self, loop):
         lcd.clear()
+        self.set_sound_config(self.state["music"], self.state["sound_names"])
+        try:
+            while True:
+                self.reset_unrendered_cells()
+                self.play_sound()
 
-        while True:
-            start_time = time.time()
+                loop()
 
-            self.reset_unrendered_cells()
+                lcd.clear()
 
-            loop()
+                for obj in self.resolve_positions():
+                    self.render_cell(obj.render(), obj.x, obj.y)
 
+                self.render_cell(self.player.render(), self.player.x, self.player.y)
+
+                for x, y in self.unrendered_cells:
+                    lcd.cursor_pos = (y, x)
+                    lcd.write_string(" ")
+
+                self.unrendered_cells.clear()
+        except KeyboardInterrupt:
+            buzzer.stop()
             lcd.clear()
-
-            for obj in self.resolve_positions():
-                self.render_cell(obj.render(), obj.x, obj.y)
-
-            self.render_cell(self.player.render(), self.player.x, self.player.y)
-
-            for x, y in self.unrendered_cells:
-                lcd.cursor_pos = (y, x)
-                lcd.write_string(" ")
-
-            self.unrendered_cells.clear()
-
-            elapsed = time.time() - start_time
-            if elapsed < 0.1:
-                time.sleep(0.1 - elapsed)

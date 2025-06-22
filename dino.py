@@ -1,5 +1,5 @@
 from core import GameObject
-from py_engine import Engine
+from lcd_engine import Engine
 import random
 
 engine = Engine()
@@ -40,9 +40,6 @@ class Obstacle(GameObject):
 
 
 def loop():
-    engine.state["sound"].playNote(engine.state["soundEffect"])
-    engine.state["soundEffect"] = ""
-
     if engine.state["otimer"] % 4 == 0:
         for obj in engine.get_objects_of(Obstacle):
             obj.x -= 1
@@ -57,7 +54,7 @@ def loop():
         engine.player.jump_time -= 1
     elif engine.get_button_a():
         engine.player.jump_time = 8
-        engine.state["soundEffect"] = "dinojump"
+        engine.play_sound("dinojump")
 
     engine.player.y = 0 if engine.player.jump_time > 0 else 1
 
@@ -72,9 +69,13 @@ def loop():
 engine.set_state(
     {
         "otimer": 0,  # Obstacle timer
-        "sound": engine.Sound(soundEffects=["dinojump"]),
-        "soundEffect": "",
+        "music": "default",
+        "sound_effects": ["dinojump"],
+        "music_length": 0,
+        "current_note_index": 0,
+        "current_sound_effect": "",
     }
 )
 engine.set_player(Player)
+engine.set_sound_config("default", ["dinojump"])
 engine.run(loop)
