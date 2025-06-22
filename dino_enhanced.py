@@ -46,6 +46,8 @@ class Player(GameObject):
         self.invulnerable_time: float = 0
     
     def render(self) -> int:
+        if self.invulnerable and int(time.time() * 4) % 2 == 0:  # Blink twice per second when invulnerable
+            return 0  # Invisible during blink
         return 0  # Dino sprite
     
     def update(self, delta_time: float) -> None:
@@ -128,22 +130,15 @@ class ScoreDisplay(GameObject):
     
     def __init__(self):
         super().__init__(0, 0)
-        self.score = 0
-        self.high_score = 0
-        self.last_update = 0
+        self.last_score = 0
+        self.last_lives = 3
+        self.last_game_over = False
     
     def render(self):
-        return 0  # This will be handled specially in the game loop
+        return 0  # This will be handled specially in display_score
     
     def update(self, delta_time):
-        # Update score every second
-        self.last_update += delta_time
-        if self.last_update >= 1.0:
-            self.score += 1
-            self.last_update = 0
-            
-            if self.score > self.high_score:
-                self.high_score = self.score
+        pass
 
 def check_collisions():
     """Check for collisions between player and obstacles"""
@@ -169,17 +164,51 @@ def check_collisions():
                         Engine.delete_object(obj)
                     Engine.state["obstacle_timer"] = 0
 
+def display_score():
+    """Display score on LCD"""
+    if not Engine.lcd_manager or not Engine.lcd_manager.is_connected:
+        return
+        
+    game_over = Engine.state.get("game_over", False)
+    
+    # Only update display if game is over
+    score_display = next((obj for obj in Engine.objects if isinstance(obj, ScoreDisplay)), None)
+    if not score_display:
+        return
+        
+    if game_over and game_over != score_display.last_game_over:
+        score_display.last_game_over = game_over
+        
+        # Show final score on top row
+        score = Engine.state.get("score", 0)
+        lives = Engine.state.get("lives", 3)
+        score_text = f"Score:{score:04d} L:{lives}"
+        spaces = " " * (16 - len(score_text))
+        Engine.lcd_manager.write_string(score_text + spaces, 0, 0)
+        
+        # Show "GAME OVER" on bottom row
+        game_over_text = "GAME OVER"
+        spaces = " " * ((16 - len(game_over_text)) // 2)
+        Engine.lcd_manager.write_string(spaces + game_over_text + spaces, 1, 0)
+    elif not game_over and score_display.last_game_over:
+        # Clear both rows when game restarts
+        score_display.last_game_over = False
+        Engine.lcd_manager.write_string(" " * 16, 0, 0)
+        Engine.lcd_manager.write_string(" " * 16, 1, 0)
+
 def game_loop():
     """Main game loop"""
     # Skip updates if game over
     if Engine.state.get("game_over", False):
         if Engine.get_button_b():  # Restart game
             Engine.reset()
-            Engine.state["lives"] = 3
-            Engine.state["score"] = 0
-            Engine.state["game_over"] = False
-            Engine.state["final_score"] = 0
-            Engine.state["obstacle_timer"] = 60  # Reset timer
+            Engine.state.update({
+                "lives": 3,
+                "score": 0,
+                "game_over": False,
+                "final_score": 0,
+                "obstacle_timer": 60  # Reset timer
+            })
             Engine.set_player(Player())
         return
 
@@ -200,32 +229,6 @@ def game_loop():
     
     # Check collisions
     check_collisions()
-
-def display_score():
-    """Display score on LCD"""
-    if Engine.lcd_manager and Engine.lcd_manager.is_connected:
-        # Clear the top row first
-        Engine.lcd_manager.write_string(" " * 16, 0, 0)
-        
-        score = Engine.state.get("score", 0)
-        lives = Engine.state.get("lives", 3)
-        
-        # Display score on top row (left-aligned)
-        score_text = f"Score:{score:04d}"
-        Engine.lcd_manager.write_string(score_text, 0, 0)
-        
-        # Display lives on top row (right-aligned)
-        lives_text = f"Lives:{lives}"
-        Engine.lcd_manager.write_string(lives_text, 0, 16 - len(lives_text))
-        
-        # Display game over message if needed
-        if Engine.state.get("game_over", False):
-            # Clear the bottom row first
-            Engine.lcd_manager.write_string(" " * 16, 1, 0)
-            
-            final_score = Engine.state.get("final_score", 0)
-            game_over_text = "GAME OVER"
-            Engine.lcd_manager.write_string(game_over_text, 1, (16 - len(game_over_text)) // 2)  # Center text
 
 def main():
     """Main game function"""
@@ -249,14 +252,9 @@ def main():
     score_display = ScoreDisplay()
     Engine.new_object(score_display)
     
-    # Custom game loop that includes score display
-    def enhanced_game_loop():
-        game_loop()
-        display_score()
-    
     # Run the game
     try:
-        Engine.run(enhanced_game_loop, max_fps=10)
+        Engine.run(lambda: (game_loop(), display_score()), max_fps=10)
     except KeyboardInterrupt:
         print("\nGame stopped by user")
     finally:
