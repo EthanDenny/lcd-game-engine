@@ -1,5 +1,6 @@
 from PIL import Image
 from RPLCD.i2c import CharLCD
+from core import Core, JoystickInputs
 from gpiozero import TonalBuzzer
 from gpiozero.tones import Tone
 from gpiozero.exc import BadPinFactory
@@ -27,8 +28,10 @@ def read_channel(channel):
     return bus.read_byte(joystick_address)
 
 
-class Engine:
-    def register_sprite(name, number):
+class Engine(Core):
+    unrendered_cells = set()
+
+    def register_sprite(self, name, number):
         img = Image.open(f"assets/{name}.png").convert("RGBA").resize((5, 8))
 
         matrix = []
@@ -96,38 +99,7 @@ class Engine:
                     self.currentNoteIndex + 1
                 ) % self.soundtrackLength
 
-    class GameObject:
-        x = 0
-        y = 0
-
-        def __init__(self, x=0, y=0):
-            self.x = x
-            self.y = y
-
-        def render(self):
-            return [
-                [1, 1, 1, 1, 1],
-                [1, 1, 1, 1, 1],
-                [1, 1, 1, 1, 1],
-                [1, 1, 1, 1, 1],
-                [1, 1, 1, 1, 1],
-                [1, 1, 1, 1, 1],
-                [1, 1, 1, 1, 1],
-            ]
-
-    class JoystickInputs:
-        left = False
-        right = False
-        up = False
-        down = False
-
-        def __init__(self, left, right, up, down):
-            self.left = left
-            self.right = right
-            self.up = up
-            self.down = down
-
-    def get_joystick():
+    def get_joystick(self):
         x_val = read_channel(0)  # AIN0 (VRx)
         y_val = read_channel(1)  # AIN1 (VRy)
         x = x_val / 255
@@ -146,75 +118,51 @@ class Engine:
         if 0.8 < y <= 1:
             up = True
 
-        return Engine.JoystickInputs(
+        return JoystickInputs(
             left=left,
             right=right,
             up=up,
             down=down,
         )
 
-    def get_button_a():
+    def get_button_a(self):
         return a_button.is_pressed
 
-    def get_button_b():
+    def get_button_b(self):
         return b_button.is_pressed
 
-    objects = []
+    def reset_unrendered_cells(self):
+        self.unrendered_cells = set((x, y) for x in range(16) for y in range(2))
 
-    def set_state(state):
-        Engine.initial_state = state.copy()
-        Engine.state = state
-
-    def set_player(obj):
-        Engine.player = obj
-
-    def new_object(obj):
-        Engine.objects.append(obj)
-
-    def delete_object(obj):
-        Engine.objects = [o for o in Engine.objects if o != obj]
-
-    def get_objects_of(class_name):
-        return [obj for obj in Engine.objects if isinstance(obj, class_name)]
-
-    unrendered_cells = set()
-
-    def reset_unrendered_cells():
-        Engine.unrendered_cells = set((x, y) for x in range(16) for y in range(2))
-
-    def render_cell(cell, x, y):
+    def render_cell(self, cell, x, y):
         if 0 <= x < 16 and 0 <= y < 2:
             lcd.cursor_pos = (y, x)
             lcd.write_string(chr(cell) if isinstance(cell, int) else cell)
-            Engine.unrendered_cells.discard((x, y))
+            self.unrendered_cells.discard((x, y))
 
-    def run(loop):
+    def run(self, loop):
         lcd.clear()
 
         while True:
             start_time = time.time()
 
-            Engine.reset_unrendered_cells()
+            self.reset_unrendered_cells()
 
             loop()
 
             lcd.clear()
 
-            for obj in Engine.objects:
-                Engine.render_cell(obj.render(), obj.x, obj.y)
+            for obj in self.objects:
+                self.render_cell(obj.render(), obj.x, obj.y)
 
-            Engine.render_cell(Engine.player.render(), Engine.player.x, Engine.player.y)
+            self.render_cell(self.player.render(), self.player.x, self.player.y)
 
-            for x, y in Engine.unrendered_cells:
+            for x, y in self.unrendered_cells:
                 lcd.cursor_pos = (y, x)
                 lcd.write_string(" ")
 
-            Engine.unrendered_cells.clear()
+            self.unrendered_cells.clear()
 
             elapsed = time.time() - start_time
             if elapsed < 0.1:
                 time.sleep(0.1 - elapsed)
-
-    def reset():
-        Engine.state = Engine.initial_state.copy()
-        Engine.objects = []

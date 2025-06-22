@@ -1,11 +1,13 @@
 import pygame
 from PIL import Image
 
+from core import Core, JoystickInputs
 
-class Engine:
+
+class Engine(Core):
     sprites = {}
 
-    def register_sprite(name, number):
+    def register_sprite(self, name, number):
         img = Image.open(f"assets/{name}.png").convert("RGBA").resize((5, 8))
 
         matrix = []
@@ -19,16 +21,16 @@ class Engine:
                     row.append(0)
             matrix.append(row)
 
-        Engine.sprites[number] = matrix
+        self.sprites[number] = matrix
 
-    def render(obj):
+    def __render(self, obj):
         result = obj.render()
 
         if isinstance(result, str):
             return "X"
         elif isinstance(result, int):
-            if result in Engine.sprites:
-                return Engine.sprites[result]
+            if result in self.sprites:
+                return self.sprites[result]
             else:
                 raise ValueError(f"Sprite number {result} not registered.")
 
@@ -42,73 +44,24 @@ class Engine:
         def playNote(self, effectName=""):
             return
 
-    class GameObject:
-        x = 0
-        y = 0
-
-        def __init__(self, x=0, y=0):
-            self.x = x
-            self.y = y
-
-        def render(self):
-            return [
-                [1, 1, 1, 1, 1],
-                [1, 1, 1, 1, 1],
-                [1, 1, 1, 1, 1],
-                [1, 1, 1, 1, 1],
-                [1, 1, 1, 1, 1],
-                [1, 1, 1, 1, 1],
-                [1, 1, 1, 1, 1],
-            ]
-
-    class JoystickInputs:
-        left = False
-        right = False
-        up = False
-        down = False
-
-        def __init__(self, left, right, up, down):
-            self.left = left
-            self.right = right
-            self.up = up
-            self.down = down
-
-    def get_joystick():
+    def get_joystick(self):
         keys = pygame.key.get_pressed()
-        return Engine.JoystickInputs(
+        return JoystickInputs(
             left=keys[pygame.K_a],
             right=keys[pygame.K_d],
             up=keys[pygame.K_w],
             down=keys[pygame.K_s],
         )
 
-    def get_button_a():
+    def get_button_a(self):
         keys = pygame.key.get_pressed()
         return keys[pygame.K_j]
 
-    def get_button_b():
+    def get_button_b(self):
         keys = pygame.key.get_pressed()
         return keys[pygame.K_l]
 
-    objects = []
-
-    def set_state(state):
-        Engine.initial_state = state.copy()
-        Engine.state = state
-
-    def set_player(obj):
-        Engine.player = obj
-
-    def new_object(obj):
-        Engine.objects.append(obj)
-
-    def delete_object(obj):
-        Engine.objects = [o for o in Engine.objects if o != obj]
-
-    def get_objects_of(class_name):
-        return [obj for obj in Engine.objects if isinstance(obj, class_name)]
-
-    def run(loop):
+    def run(self, loop):
         CELL_WIDTH = 5
         CELL_HEIGHT = 8
         BORDER = 1
@@ -164,12 +117,10 @@ class Engine:
 
             loop()
 
-            for obj in Engine.objects:
-                draw_lcd_cell(obj.x, obj.y, Engine.render(obj))
+            for obj in self.objects:
+                draw_lcd_cell(obj.x, obj.y, self.__render(obj))
 
-            draw_lcd_cell(
-                Engine.player.x, Engine.player.y, Engine.render(Engine.player)
-            )
+            draw_lcd_cell(self.player.x, self.player.y, self.__render(self.player))
 
             # Scale up the lcd_surface and blit to the screen
             scaled_surface = pygame.transform.scale(
@@ -178,7 +129,3 @@ class Engine:
             screen.blit(scaled_surface, (0, 0))
             pygame.display.flip()
             pygame.time.delay(100)
-
-    def reset():
-        Engine.state = Engine.initial_state.copy()
-        Engine.objects = []
