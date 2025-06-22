@@ -2,7 +2,7 @@ import pygame
 from PIL import Image
 
 from core import Core, JoystickInputs
-
+buzzer: None
 
 class Engine(Core):
     sprites = {}
@@ -48,17 +48,71 @@ class Engine(Core):
             else:
                 raise ValueError(f"Sprite number {result} not registered.")
 
-    class Sound:
-        def __init__(self, music="default", soundEffects: list[str] = []):
-            return
 
-        def playSoundEffect(self, effectName: str):
-            return
+    def set_sound_config(music_name: str, effect_names = list[str] ):
+        sound_effects: dict = {}
+        music: dict = {}
+        for effect_name in effect_names: 
+            with open(f"assets/soundeffects/{effect_name}.txt") as f:
+                notes = f.read().strip().split()
+                sound_effects[effect_name] = { q : float(notes[q]) for q in range(len(notes))}
+                f.close()
 
-        def playNote(self, effectName=""):
-            return
+            with open(f"assets/music/{music_name}.txt") as f:
+                notes = f.read().strip().split()
+                music_length = len(notes)
+                music = {i: float(notes[i]) for i in range(music_length)}
+                f.close()
 
-    def get_joystick(self):
+            Engine.state['music'] = music
+            Engine.state['sound_effects'] = sound_effects
+            Engine.state['music_length'] = music_length
+            Engine.state['current_note_index'] = 0
+            Engine.state['current_sound_effect'] = ''
+
+    # play the current note of the soundtrack. cycle to beginning when finished.
+    def play_sound(effect_name = ''):
+            if(effect_name): 
+                effect_notes: list[str] = Engine.state['sound_effects'][effect_name]
+                for i in range(len(effect_notes)):
+                    # buzzer.play(Tone.from_frequency(effect_notes[i]))  
+                    print("JUMP!")
+            else: 
+                # buzzer.play(Tone.from_frequency(Engine.state['music'][Engine.state['current_note_index']]))
+                print(Engine.state['music'][Engine.state['current_note_index']])
+                Engine.state['current_note_index'] = (Engine.state['current_note_index'] + 1 ) % Engine.state['music_length']
+    class GameObject:
+        x = 0
+        y = 0
+
+        def __init__(self, x=0, y=0):
+            self.x = x
+            self.y = y
+
+        def render(self):
+            return [
+                [1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1],
+            ]
+
+    class JoystickInputs:
+        left = False
+        right = False
+        up = False
+        down = False
+
+        def __init__(self, left, right, up, down):
+            self.left = left
+            self.right = right
+            self.up = up
+            self.down = down
+
+    def get_joystick():
         keys = pygame.key.get_pressed()
         return JoystickInputs(
             left=keys[pygame.K_a],
@@ -120,7 +174,7 @@ class Engine(Core):
 
         clear_lcd()
         pygame.display.flip()
-
+        Engine.set_sound_config(Engine.state['music'], Engine.state['sound_names'])
         running = True
         while running:
             for event in pygame.event.get():
@@ -128,7 +182,7 @@ class Engine(Core):
                     running = False
 
             clear_lcd()
-
+            Engine.play_sound()
             loop()
 
             for obj in self.resolve_positions():
@@ -143,3 +197,8 @@ class Engine(Core):
             screen.blit(scaled_surface, (0, 0))
             pygame.display.flip()
             pygame.time.delay(100)
+
+    def reset():
+        Engine.state = Engine.initial_state.copy()
+        Engine.set_sound_config(Engine.state['music'], Engine.state['sound_names'])
+        Engine.objects = []
