@@ -1,5 +1,5 @@
 from core import GameObject
-from py_engine import Engine
+from lcd_engine import Engine
 import random
 
 engine = Engine()
