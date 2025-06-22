@@ -552,10 +552,12 @@ class Engine:
                 cls.lcd_manager.render_game_objects()
                 
                 # Render player
-                if cls.player and cls.player.visible and 0 <= cls.player.x < 16 and 0 <= cls.player.y < 2:
-                    char_id = cls.player.render()
-                    if isinstance(char_id, int):
-                        cls.lcd_manager.write_char(char_id, cls.player.y, cls.player.x)
+                if cls.player and cls.player.visible:
+                    x, y = cls.player.lcd_x, cls.player.lcd_y
+                    if 0 <= x < 16 and 0 <= y < 2:
+                        char_id = cls.player.render()
+                        if isinstance(char_id, int):
+                            cls.lcd_manager.write_char(char_id, y, x)
                 
                 # Check for keyboard quit (in keyboard mode)
                 if cls.input_manager and cls.input_manager.config.input_type == InputType.KEYBOARD:

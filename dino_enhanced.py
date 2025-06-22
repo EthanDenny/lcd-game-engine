@@ -36,19 +36,19 @@ class Player(GameObject):
     """Enhanced player class with better physics"""
     
     def __init__(self):
-        super().__init__(1, 1)
-        self.jump_time = 0
-        self.jump_velocity = 0
-        self.gravity = 0.3
-        self.jump_power = 0.8
-        self.on_ground = True
-        self.invulnerable = False
-        self.invulnerable_time = 0
+        super().__init__(1, 1)  # Start at bottom left
+        self.jump_time: float = 0
+        self.jump_velocity: float = 0
+        self.gravity: float = 0.3
+        self.jump_power: float = 0.8
+        self.on_ground: bool = True
+        self.invulnerable: bool = False
+        self.invulnerable_time: float = 0
     
-    def render(self):
+    def render(self) -> int:
         return 0  # Dino sprite
     
-    def update(self, delta_time):
+    def update(self, delta_time: float) -> None:
         # Handle jumping
         if Engine.get_button_a() and self.on_ground:
             self.jump_velocity = self.jump_power
@@ -59,13 +59,16 @@ class Player(GameObject):
             self.jump_velocity -= self.gravity * delta_time * 60  # Scale for 60 FPS
         
         # Update position
-        self.y = 1 - self.jump_velocity
+        new_y = 1 - self.jump_velocity
         
         # Ground collision
-        if self.y >= 1:
-            self.y = 1
+        if new_y >= 1:
+            new_y = 1
             self.jump_velocity = 0
             self.on_ground = True
+        
+        # Update position
+        self.y = new_y
         
         # Update invulnerability
         if self.invulnerable:
@@ -89,12 +92,12 @@ class Obstacle(GameObject):
         
         self.obstacle_type = obstacle_type
         y_pos = 0 if obstacle_type == "bird" else 1
-        super().__init__(15, y_pos)
+        super().__init__(15, y_pos)  # Start at right side
         
-        self.speed = 2.0  # Speed in cells per second
-        self.active = True
+        self.speed: float = 2.0  # Speed in cells per second
+        self.active: bool = True
     
-    def render(self):
+    def render(self) -> int:
         if not self.active:
             return 0  # Empty space
         
@@ -108,15 +111,17 @@ class Obstacle(GameObject):
             case _:
                 return 0
     
-    def update(self, delta_time):
+    def update(self, delta_time: float) -> None:
         if self.active:
             # Move left
-            self.x -= self.speed * delta_time * 60  # Scale for 60 FPS
+            new_x = self.x - self.speed * delta_time * 60  # Scale for 60 FPS
             
             # Remove if off screen
-            if self.x < -1:
+            if new_x < -1:
                 self.active = False
                 Engine.delete_object(self)
+            else:
+                self.x = new_x
 
 class ScoreDisplay(GameObject):
     """Score display object"""
@@ -147,8 +152,8 @@ def check_collisions():
         return
     
     for obstacle in Engine.get_objects_of(Obstacle):
-        if (abs(player.x - obstacle.x) < 0.5 and 
-            abs(player.y - obstacle.y) < 0.5 and 
+        if (abs(player.lcd_x - obstacle.lcd_x) < 1 and 
+            abs(player.lcd_y - obstacle.lcd_y) < 1 and 
             obstacle.active):
             
             if player.on_collision(obstacle):
