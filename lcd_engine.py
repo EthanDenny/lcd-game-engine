@@ -135,10 +135,9 @@ class Engine(Core):
         self.unrendered_cells = set((x, y) for x in range(16) for y in range(2))
 
     def render_cell(self, cell, x, y):
-        if 0 <= x < 16 and 0 <= y < 2:
-            lcd.cursor_pos = (y, x)
-            lcd.write_string(chr(cell) if isinstance(cell, int) else cell)
-            self.unrendered_cells.discard((x, y))
+        lcd.cursor_pos = (y % 2, x % 16)
+        lcd.write_string(chr(cell) if isinstance(cell, int) else cell)
+        self.unrendered_cells.discard((x % 16, y % 2))
 
     def run(self, loop):
         lcd.clear()
@@ -152,7 +151,7 @@ class Engine(Core):
 
             lcd.clear()
 
-            for obj in self.objects:
+            for obj in self.resolve_positions():
                 self.render_cell(obj.render(), obj.x, obj.y)
 
             self.render_cell(self.player.render(), self.player.x, self.player.y)
