@@ -153,14 +153,16 @@ class Engine(Core):
     def run(self, loop):
         lcd.clear()
         Engine.set_sound_config(Engine.state['music'], Engine.state['sound_names'])
-        while True:
-            start_time = time.time()
+        try:
+            while True:
+                start_time = time.time()
 
-            Engine.reset_unrendered_cells()
-            Engine.play_sound()
-            loop()
+                Engine.reset_unrendered_cells()
+                Engine.play_sound()
+                
+                loop()
 
-            lcd.clear()
+                lcd.clear()
 
             for obj in self.resolve_positions():
                 self.render_cell(obj.render(), obj.x, obj.y)
@@ -173,9 +175,13 @@ class Engine(Core):
 
             self.unrendered_cells.clear()
 
-            elapsed = time.time() - start_time
-            if elapsed < 0.1:
-                time.sleep(0.1 - elapsed)
+                elapsed = time.time() - start_time
+                if elapsed < 0.1:
+                    time.sleep(0.1 - elapsed)
+        except KeyboardInterrupt:
+            buzzer.stop()
+            lcd.clear()
+
 
     def reset():
         Engine.state = Engine.initial_state.copy()
