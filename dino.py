@@ -1,13 +1,16 @@
+from core import GameObject
 from py_engine import Engine
 import random
 
-Engine.register_sprite("dino", 0)
-Engine.register_sprite("cactus", 1)
-Engine.register_sprite("rock", 2)
-Engine.register_sprite("bird", 3)
+engine = Engine()
+
+engine.register_sprite("dino", 0)
+engine.register_sprite("cactus", 1)
+engine.register_sprite("rock", 2)
+engine.register_sprite("bird", 3)
 
 
-class Player(Engine.GameObject):
+class Player(GameObject):
     jump_time = 0
 
     def __init__(self):
@@ -17,7 +20,7 @@ class Player(Engine.GameObject):
         return 0
 
 
-class Obstacle(Engine.GameObject):
+class Obstacle(GameObject):
     kind = "cactus"
 
     def __init__(self):
@@ -37,41 +40,41 @@ class Obstacle(Engine.GameObject):
 
 
 def loop():
-    Engine.state["sound"].playNote(Engine.state["soundEffect"])
-    Engine.state["soundEffect"] = ""
+    engine.state["sound"].playNote(engine.state["soundEffect"])
+    engine.state["soundEffect"] = ""
 
-    if Engine.state["otimer"] % 4 == 0:
-        for obj in Engine.get_objects_of(Obstacle):
+    if engine.state["otimer"] % 4 == 0:
+        for obj in engine.get_objects_of(Obstacle):
             obj.x -= 1
 
-    if Engine.state["otimer"] == 0:
-        Engine.new_object(Obstacle())
-        Engine.state["otimer"] = 20
+    if engine.state["otimer"] == 0:
+        engine.new_object(Obstacle())
+        engine.state["otimer"] = 20
 
-    Engine.state["otimer"] -= 1
+    engine.state["otimer"] -= 1
 
-    if Engine.player.jump_time > 0:
-        Engine.player.jump_time -= 1
-    elif Engine.get_button_a():
-        Engine.player.jump_time = 8
-        Engine.state["soundEffect"] = "dinojump"
+    if engine.player.jump_time > 0:
+        engine.player.jump_time -= 1
+    elif engine.get_button_a():
+        engine.player.jump_time = 8
+        engine.state["soundEffect"] = "dinojump"
 
-    Engine.player.y = 0 if Engine.player.jump_time > 0 else 1
+    engine.player.y = 0 if engine.player.jump_time > 0 else 1
 
-    for obj in Engine.get_objects_of(Obstacle):
-        if Engine.player.x == obj.x and Engine.player.y == obj.y:
-            Engine.reset()
-            Engine.player.jump_time = 0
+    for obj in engine.get_objects_of(Obstacle):
+        if engine.player.x == obj.x and engine.player.y == obj.y:
+            engine.reset()
+            engine.player.jump_time = 0
 
 
 # Start the game
 
-Engine.set_state(
+engine.set_state(
     {
         "otimer": 0,  # Obstacle timer
-        "sound": Engine.Sound(soundEffects=["dinojump"]),
+        "sound": engine.Sound(soundEffects=["dinojump"]),
         "soundEffect": "",
     }
 )
-Engine.set_player(Player())
-Engine.run(loop)
+engine.set_player(Player)
+engine.run(loop)
