@@ -1,4 +1,4 @@
-from RPLCD.i2c import CharLCD
+from RPLCD.i2c import CharLCD  
 from gpiozero import Button
 import time
 
@@ -17,43 +17,99 @@ bullet_pos = None
 alien_pos = 5
 alien_alive = True
 
-# Custom Characters
-player_char = [
-    0b00100,
-    0b01110,
-    0b11111,
-    0b00100,
-    0b01110,
-    0b10101,
-    0b00100,
-    0b01010
+# Sprites
+
+ship_sprite = [
+0B00000,
+0B00000,
+0B00000,
+0B00000,
+0B00000,
+0B00100,
+0B01110,
+0B11011
 ]
 
-alien_char = [
-    0b01110,
-    0b10101,
-    0b11111,
-    0b11011,
-    0b11111,
-    0b10101,
-    0b01010,
-    0b00100
+ship_bullet_sprite = [
+0B00000,
+0B00100,
+0B00100,
+0B00000,
+0B00000,
+0B00100,
+0B01110,
+0B11011
 ]
 
-bullet_char = [
-    0b00100,
-    0b00100,
-    0b00100,
-    0b00100,
-    0b00000,
-    0b00000,
-    0b00000,
-    0b00000
+bullet_down_sprite = [
+0B00000,
+0B00000,
+0B00000,
+0B00000,
+0B00000,
+0B00100,
+0B00100,
+0B00000
 ]
 
-lcd.create_char(0, player_char)
-lcd.create_char(1, alien_char)
-lcd.create_char(2, bullet_char)
+bullet_up_sprite = [
+0B00000,
+0B00100,
+0B00100,
+0B00000,
+0B00000,
+0B00000,
+0B00000,
+0B00000
+]
+
+alien1_1_sprite = [
+0B01010,
+0B10101,
+0B01110,
+0B10001,
+0B00000,
+0B00000,
+0B00000,
+0B00000
+]
+
+alien1_2_sprite = [
+0B01010,
+0B10101,
+0B01110,
+0B01010,
+0B00000,
+0B00000,
+0B00000,
+0B00000
+]
+
+alien1_1_bullet_sprite = [
+0B01010,
+0B10101,
+0B01110,
+0B10001,
+0B00000,
+0B00100,
+0B00100,
+0B00000
+]
+
+alien1_2_bullet_sprite = [
+0B01010,
+0B10101,
+0B01110,
+0B01010,
+0B00000,
+0B00100,
+0B00100,
+0B00000
+]
+
+lcd.create_char(0, ship_sprite)
+lcd.create_char(1, alien1_1_sprite)
+lcd.create_char(2, ship_bullet_sprite)
 
 def draw():
     lcd.clear()
