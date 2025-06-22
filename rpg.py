@@ -1,6 +1,5 @@
 from core import GameObject
 from py_engine import Engine
-import random
 
 engine = Engine()
 
@@ -39,6 +38,10 @@ class Enemy(GameObject):
 
 
 def reset_enemies():
+    engine.new_object(Enemy(x=2, y=-2))
+    engine.new_object(Enemy(x=10, y=-1))
+    engine.new_object(Enemy(x=14, y=-1))
+
     engine.new_object(Enemy(x=3, y=1))
     engine.new_object(Enemy(x=7, y=0))
     engine.new_object(Enemy(x=12, y=1))
@@ -53,15 +56,15 @@ def loop():
     js = engine.get_joystick()
 
     if js.left:
-        engine.player.x = max(0, engine.player.x - 1)
+        engine.player.x -= 1
         engine.state["sword_dir"] = "left"
     if js.right:
-        engine.player.x = min(15, engine.player.x + 1)
+        engine.player.x += 1
         engine.state["sword_dir"] = "right"
     if js.up:
-        engine.player.y = max(0, engine.player.y - 1)
+        engine.player.y -= 1
     if js.down:
-        engine.player.y = min(1, engine.player.y + 1)
+        engine.player.y += 1
 
     if engine.get_button_a():
         if len(engine.get_objects_of(Sword)) == 0:

@@ -96,8 +96,8 @@ class Engine(Core):
         pygame.display.set_caption("16x2 LCD Display")
 
         def draw_lcd_cell(col, row, bits, bg=BG):
-            x = BORDER + col * (CELL_WIDTH + BORDER)
-            y = BORDER + row * (CELL_HEIGHT + BORDER)
+            x = BORDER + (col % 16) * (CELL_WIDTH + BORDER)
+            y = BORDER + (row % 2) * (CELL_HEIGHT + BORDER)
             pygame.draw.rect(lcd_surface, bg, (x, y, CELL_WIDTH, CELL_HEIGHT))
 
             for row_idx in range(CELL_HEIGHT):
@@ -131,7 +131,7 @@ class Engine(Core):
 
             loop()
 
-            for obj in self.objects:
+            for obj in self.resolve_positions():
                 draw_lcd_cell(obj.x, obj.y, self.__render(obj))
 
             draw_lcd_cell(self.player.x, self.player.y, self.__render(self.player))

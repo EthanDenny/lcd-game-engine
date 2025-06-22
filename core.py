@@ -1,3 +1,6 @@
+import math
+
+
 class JoystickInputs:
     left = False
     right = False
@@ -27,6 +30,14 @@ class Core:
     player = None
     state = initial_state = None
     objects = []
+
+    def resolve_positions(self):
+        def real_position(obj):
+            return (math.floor(obj.x / 16), math.floor(obj.y / 2))
+
+        player_real = real_position(self.player)
+
+        return [o for o in self.objects if real_position(o) == player_real]
 
     def reset(self):
         self.player = self.player_class()
