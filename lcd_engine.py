@@ -177,6 +177,35 @@ class LCDManager:
             self.lcd.clear()
             self.lcd.close()
 
+    def render_game_objects(self):
+        """Render all game objects to LCD"""
+        if not self.is_connected:
+            return
+        
+        # Clear the frame buffer
+        self.frame_buffer = [[' ' for _ in range(self.config.cols)] for _ in range(self.config.rows)]
+        
+        # Render all objects
+        for obj in Engine.objects:
+            if obj.visible and obj.active:
+                sprite_id = obj.render()
+                if sprite_id > 0:  # 0 is empty space
+                    # Use lcd_x and lcd_y for integer coordinates
+                    x, y = obj.lcd_x, obj.lcd_y
+                    if 0 <= x < self.config.cols and 0 <= y < self.config.rows:
+                        self.frame_buffer[y][x] = sprite_id
+                        self.dirty_cells.add((y, x))
+        
+        # Update dirty cells on LCD
+        for row, col in self.dirty_cells:
+            sprite_id = self.frame_buffer[row][col]
+            if isinstance(sprite_id, int) and sprite_id > 0:
+                self.write_char(sprite_id, row, col)
+            elif isinstance(sprite_id, str):
+                self.write_string(sprite_id, row, col)
+        
+        self.dirty_cells.clear()
+
 class InputManager:
     """Manages input devices with abstraction layer"""
     
@@ -339,10 +368,20 @@ class JoystickInputs:
 class GameObject:
     """Base class for game objects"""
     def __init__(self, x: int = 0, y: int = 0):
-        self.x = x
-        self.y = y
-        self.visible = True
-        self.active = True
+        self.x: float = float(x)  # Store as float for smooth movement
+        self.y: float = float(y)  # Store as float for smooth movement
+        self.visible: bool = True
+        self.active: bool = True
+    
+    @property
+    def lcd_x(self) -> int:
+        """Get integer X coordinate for LCD"""
+        return int(round(self.x))
+    
+    @property
+    def lcd_y(self) -> int:
+        """Get integer Y coordinate for LCD"""
+        return int(round(self.y))
     
     def render(self) -> int:
         """Render method - override in subclasses"""
@@ -510,11 +549,7 @@ class Engine:
                         obj.update(delta_time)
                 
                 # Render all objects
-                for obj in cls.objects:
-                    if obj.visible and 0 <= obj.x < 16 and 0 <= obj.y < 2:
-                        char_id = obj.render()
-                        if isinstance(char_id, int):
-                            cls.lcd_manager.write_char(char_id, obj.y, obj.x)
+                cls.lcd_manager.render_game_objects()
                 
                 # Render player
                 if cls.player and cls.player.visible and 0 <= cls.player.x < 16 and 0 <= cls.player.y < 2:
