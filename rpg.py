@@ -3,16 +3,13 @@ from py_engine import Engine
 
 engine = Engine()
 
-engine.register_sprite("@", 0)
-engine.register_sprite("K", 1)
-
 
 class Player(GameObject):
     def __init__(self, x=0, y=0):
         super().__init__(x, y)
 
     def render(self):
-        return 0
+        return "@"
 
 
 class Enemy(GameObject):
@@ -26,7 +23,7 @@ class Kobold(Enemy):
         super().__init__(x, y, 2)
 
     def render(self):
-        return 1
+        return "K"
 
 
 def loop():

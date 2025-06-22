@@ -27,8 +27,22 @@ class Engine(Core):
         result = obj.render()
 
         if isinstance(result, str):
-            return "X"
-        elif isinstance(result, int):
+            img = Image.open(f"assets/font/{result}.png").convert("RGBA").resize((5, 8))
+
+            matrix = []
+            for y in range(8):
+                row = []
+                for x in range(5):
+                    r, g, b, a = img.getpixel((x, y))
+                    if a > 0 and r < 128 and g < 128 and b < 128:
+                        row.append(1)
+                    else:
+                        row.append(0)
+                matrix.append(row)
+
+            return matrix
+
+        if isinstance(result, int):
             if result in self.sprites:
                 return self.sprites[result]
             else:
