@@ -49,13 +49,15 @@ class Engine(Core):
 
         lcd.create_char(number, byte_map)
 
-    def set_sound_config(music_name: str, effect_names = list[str] ):
+    def set_sound_config(self, music_name: str, effect_names=list[str]):
         sound_effects: dict = {}
         music: dict = {}
-        for effect_name in effect_names: 
+        for effect_name in effect_names:
             with open(f"assets/soundeffects/{effect_name}.txt") as f:
                 notes = f.read().strip().split()
-                sound_effects[effect_name] = { q : float(notes[q]) for q in range(len(notes))}
+                sound_effects[effect_name] = {
+                    q: float(notes[q]) for q in range(len(notes))
+                }
                 f.close()
 
             with open(f"assets/music/{music_name}.txt") as f:
@@ -64,21 +66,28 @@ class Engine(Core):
                 music = {i: float(notes[i]) for i in range(music_length)}
                 f.close()
 
-            Engine.state['music'] = music
-            Engine.state['sound_effects'] = sound_effects
-            Engine.state['music_length'] = music_length
-            Engine.state['current_note_index'] = 0
-            Engine.state['current_sound_effect'] = ''
+            self.state["music"] = music
+            self.state["sound_effects"] = sound_effects
+            self.state["music_length"] = music_length
+            self.state["current_note_index"] = 0
+            self.state["current_sound_effect"] = ""
 
     # play the current note of the soundtrack. cycle to beginning when finished.
-    def play_sound(effect_name = ''):
-            if(effect_name): 
-                effect_notes: list[str] = Engine.state['sound_effects'][effect_name]
-                for i in range(len(effect_notes)):
-                    buzzer.play(Tone.from_frequency(effect_notes[i]))  
-            else: 
-                buzzer.play(Tone.from_frequency(Engine.state['music'][Engine.state['current_note_index']]))
-                Engine.state['current_note_index'] = (Engine.state['current_note_index'] + 1 ) % Engine.state['music_length']
+    def play_sound(self, effect_name=""):
+        if effect_name:
+            effect_notes: list[str] = self.state["sound_effects"][effect_name]
+            for i in range(len(effect_notes)):
+                buzzer.play(Tone.from_frequency(effect_notes[i]))
+        else:
+            buzzer.play(
+                Tone.from_frequency(
+                    self.state["music"][self.state["current_note_index"]]
+                )
+            )
+            self.state["current_note_index"] = (
+                self.state["current_note_index"] + 1
+            ) % self.state["music_length"]
+
     class GameObject:
         x = 0
         y = 0
@@ -152,38 +161,26 @@ class Engine(Core):
 
     def run(self, loop):
         lcd.clear()
-        Engine.set_sound_config(Engine.state['music'], Engine.state['sound_names'])
+        self.set_sound_config(self.state["music"], self.state["sound_names"])
         try:
             while True:
-                start_time = time.time()
+                self.reset_unrendered_cells()
+                self.play_sound()
 
-                Engine.reset_unrendered_cells()
-                Engine.play_sound()
-                
                 loop()
 
                 lcd.clear()
 
-            for obj in self.resolve_positions():
-                self.render_cell(obj.render(), obj.x, obj.y)
+                for obj in self.resolve_positions():
+                    self.render_cell(obj.render(), obj.x, obj.y)
 
-            self.render_cell(self.player.render(), self.player.x, self.player.y)
+                self.render_cell(self.player.render(), self.player.x, self.player.y)
 
-            for x, y in self.unrendered_cells:
-                lcd.cursor_pos = (y, x)
-                lcd.write_string(" ")
+                for x, y in self.unrendered_cells:
+                    lcd.cursor_pos = (y, x)
+                    lcd.write_string(" ")
 
-            self.unrendered_cells.clear()
-
-                elapsed = time.time() - start_time
-                if elapsed < 0.1:
-                    time.sleep(0.1 - elapsed)
+                self.unrendered_cells.clear()
         except KeyboardInterrupt:
             buzzer.stop()
             lcd.clear()
-
-
-    def reset():
-        Engine.state = Engine.initial_state.copy()
-        Engine.set_sound_config(Engine.state['music'], Engine.state['sound_names'])
-        Engine.objects = []
